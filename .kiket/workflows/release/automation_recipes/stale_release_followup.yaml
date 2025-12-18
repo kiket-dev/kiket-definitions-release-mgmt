@@ -1,0 +1,48 @@
+model_version: "1.0"
+recipe:
+  key: stale_release_followup
+  name: "Stale Release Follow-up"
+  description: "Follow up on releases that have been in development or staging too long."
+  trigger: "scheduled"
+  schedule: "0 9 * * 1-5"  # Daily at 9 AM on weekdays
+  conditions:
+    any:
+      - all:
+          - field: "status"
+            operator: "="
+            value: development
+          - field: "days_in_state"
+            operator: "greater_or_equal"
+            value: 7
+      - all:
+          - field: "status"
+            operator: "="
+            value: staging
+          - field: "days_in_state"
+            operator: "greater_or_equal"
+            value: 3
+  actions:
+    - type: "notify"
+      channel: "in_app"
+      recipients:
+        - "{{issue.assignee}}"
+      template: "stale_release"
+      message: "Release {{issue.custom_fields.version_tag}} has been in {{issue.status}} for {{issue.days_in_state}} days."
+
+    - type: "add_comment"
+      body: |
+        This release has been in **{{issue.status}}** for {{issue.days_in_state}} days.
+
+        Please provide an update on the status or consider:
+        - Moving to the next stage if ready
+        - Breaking into smaller releases
+        - Documenting blockers
+
+    - type: "add_label"
+      label: "needs-attention"
+
+  metadata:
+    category: "release"
+    follow_up_days:
+      development: 7
+      staging: 3

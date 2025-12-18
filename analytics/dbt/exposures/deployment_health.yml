@@ -1,0 +1,32 @@
+version: 2
+
+exposures:
+  - name: deployment_health_dashboard
+    label: Deployment Health Dashboard
+    type: dashboard
+    maturity: high
+    url: "{{ env_var('KIKET_BASE_URL') }}/dashboards/release.deployment_health"
+    description: >
+      Monitors release velocity, approval efficiency, rollback rates, and
+      identifies bottlenecks in the deployment pipeline. Used by engineering
+      and SRE teams to track deployment health and optimize release processes.
+
+    depends_on:
+      - ref('fct_releases')
+      - ref('fct_workflow_approvals')
+      - ref('fct_state_transitions')
+      - ref('dim_users')
+
+    owner:
+      name: Platform Engineering
+      email: platform@example.com
+
+    tags:
+      - release-management
+      - sre
+      - deployment
+
+    meta:
+      refresh_frequency: hourly
+      primary_audience: engineering
+      sla_critical: true

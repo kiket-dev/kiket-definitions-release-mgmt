@@ -1,0 +1,123 @@
+model_version: "1.0"
+board:
+  id: release-pipeline
+  name: Release Pipeline
+  type: kanban
+  description: Track releases through the deployment pipeline with approval gates.
+  workflow: release
+
+columns:
+  - key: development
+    name: Development
+    states: [development]
+    color: secondary
+
+  - key: staging
+    name: Staging
+    states: [staging]
+    wip_limit: 3
+    color: info
+
+  - key: pending-approval
+    name: Pending Approval
+    states: [pending_approval]
+    color: warning
+    metadata:
+      show_approval_status: true
+      highlight_blocked: true
+
+  - key: production
+    name: Production
+    states: [production]
+    color: success
+
+  - key: rollback
+    name: Rollback
+    states: [rollback]
+    color: danger
+
+  - key: completed
+    name: Completed
+    states: [completed, failed]
+    color: secondary
+    collapsed: true
+
+swimlanes:
+  field: release_type
+  lanes:
+    - key: hotfix
+      name: Hotfixes
+      color: danger
+      priority: 1
+    - key: major
+      name: Major Releases
+      color: primary
+      priority: 2
+    - key: minor
+      name: Minor Releases
+      color: info
+      priority: 3
+    - key: patch
+      name: Patches
+      color: secondary
+      priority: 4
+
+card_template:
+  size: standard
+  fields:
+    primary:
+      - title
+      - version_tag
+      - assignee
+    secondary:
+      - release_type
+      - target_date
+      - deployed_at
+  badges:
+    - type: priority
+    - type: approval_status
+    - type: comments_count
+  indicators:
+    - type: blocked
+      condition: "status == 'pending_approval' && has_pending_approvals"
+    - type: overdue
+      condition: "target_date < now && status != 'completed'"
+
+filters:
+  quick:
+    - key: my-releases
+      name: My Releases
+      query: "assignee == currentUser"
+    - key: pending-approval
+      name: Pending Approval
+      query: "status == 'pending_approval'"
+    - key: hotfixes
+      name: Hotfixes Only
+      query: "issue_type == 'Hotfix'"
+    - key: blocked
+      name: Blocked
+      query: "has_pending_approvals == true"
+
+actions:
+  - key: deploy-staging
+    name: Deploy to Staging
+    icon: upload
+    transition: staging
+    confirm: true
+    available_states: [development]
+
+  - key: request-approval
+    name: Request Approval
+    icon: shield-check
+    transition: pending_approval
+    confirm: true
+    available_states: [staging]
+
+  - key: rollback
+    name: Initiate Rollback
+    icon: arrow-counterclockwise
+    transition: rollback
+    confirm: true
+    confirm_message: "Are you sure you want to initiate a rollback? This will require SRE approval."
+    available_states: [production]
+    style: danger

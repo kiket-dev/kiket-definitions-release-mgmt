@@ -1,0 +1,39 @@
+model_version: "1.0"
+recipe:
+  key: production_approval_escalation
+  name: "Production Approval Escalation"
+  description: "Escalate production approvals that are blocking releases beyond SLA."
+  trigger: "approval.timeout"
+  conditions:
+    all:
+      - field: "status"
+        operator: "="
+        value: pending_approval
+      - field: "approval.pending_duration_hours"
+        operator: "greater_or_equal"
+        value: 4
+  actions:
+    - type: "notify"
+      channel: "slack:release-approvals"
+      template: "approval_escalation"
+      level: "warning"
+      message: "Release {{issue.custom_fields.version_tag}} is awaiting approval for {{approval.pending_duration_hours}} hours."
+
+    - type: "escalate_approval"
+      add_approvers:
+        - type: role
+          identifier: engineering_manager
+      reason: "Escalated due to approval SLA breach"
+
+    - type: "set_field"
+      field: "escalated"
+      value: true
+
+  metadata:
+    category: "release"
+    sla_hours: 4
+    escalation_chain:
+      - after: 4h
+        notify: engineering_manager
+      - after: 8h
+        notify: director

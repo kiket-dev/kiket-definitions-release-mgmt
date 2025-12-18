@@ -1,0 +1,54 @@
+model_version: "1.0"
+recipe:
+  key: rollback_incident
+  name: "Rollback Incident Management"
+  description: "Automatically create incident and postmortem when a release requires rollback."
+  trigger: "workflow.after_transition"
+  conditions:
+    all:
+      - field: "to_state"
+        operator: "="
+        value: rollback
+  actions:
+    - type: "notify"
+      channel: "pagerduty"
+      template: "production_rollback"
+      level: "critical"
+      message: "PRODUCTION ROLLBACK: {{issue.custom_fields.version_tag}} is being rolled back."
+
+    - type: "notify"
+      channel: "slack:incident-response"
+      template: "production_rollback"
+      level: "critical"
+      mention:
+        - "@sre-oncall"
+        - "@engineering-leads"
+
+    - type: "create_child_issue"
+      issue_type: Postmortem
+      title: "Postmortem: {{issue.title}} Rollback"
+      priority: high
+      assignee: "{{issue.assignee}}"
+      fields:
+        incident_summary: |
+          Release {{issue.custom_fields.version_tag}} required production rollback.
+
+          Original changelog:
+          {{issue.custom_fields.changelog}}
+        parent_release: "{{issue.id}}"
+
+    - type: "request_approval"
+      assignment:
+        type: role
+        identifier: sre
+      reason: "SRE confirmation required to complete rollback procedure"
+      timeout: "1h"
+      urgency: critical
+
+    - type: "add_label"
+      label: "incident"
+
+  metadata:
+    category: "incident"
+    severity: critical
+    requires_postmortem: true

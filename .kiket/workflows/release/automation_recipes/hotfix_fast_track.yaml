@@ -1,0 +1,51 @@
+model_version: "1.0"
+recipe:
+  key: hotfix_fast_track
+  name: "Hotfix Fast Track"
+  description: "Expedite critical hotfixes through the approval process."
+  trigger: "issue.updated"
+  conditions:
+    all:
+      - field: "issue_type"
+        operator: "="
+        value: Hotfix
+      - field: "custom_fields.severity"
+        operator: "="
+        value: critical
+      - field: "status"
+        operator: "="
+        value: pending_approval
+  actions:
+    - type: "notify"
+      channel: "pagerduty"
+      template: "critical_hotfix"
+      level: "critical"
+      message: "CRITICAL HOTFIX: {{issue.custom_fields.version_tag}} requires immediate approval."
+
+    - type: "notify"
+      channel: "slack:incident-response"
+      template: "critical_hotfix"
+      level: "critical"
+
+    - type: "modify_approval_chain"
+      changes:
+        - skip_levels: [3, 4]  # Skip manager/director for critical hotfixes
+        - reduce_timeout:
+            all_levels: "1h"
+        - add_approvers:
+            level: 1
+            assignment:
+              type: role
+              identifier: sre_oncall
+
+    - type: "add_label"
+      label: "fast-track"
+
+    - type: "set_priority"
+      value: "critical"
+
+  metadata:
+    category: "release"
+    fast_track: true
+    max_approval_time: "2h"
+  requires_approval: false

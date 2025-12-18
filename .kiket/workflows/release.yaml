@@ -1,0 +1,297 @@
+model_version: "1.0"
+workflow:
+  id: release
+  name: Release Management
+  version: 1.0.0
+  description: >
+    Production release workflow with multi-level approval chains,
+    escalation policies, and rollback capabilities.
+
+states:
+  development:
+    type: initial
+    category: pending
+    metadata:
+      label: Development
+      color: secondary
+      icon: code
+      description: Feature development in progress.
+
+  staging:
+    type: active
+    category: active
+    metadata:
+      label: Staging
+      color: info
+      icon: server
+      description: Deployed to staging environment for testing.
+    wip_limit: 3
+
+  pending_approval:
+    type: gateway
+    category: review
+    metadata:
+      label: Pending Approval
+      color: warning
+      icon: clock-history
+      description: Awaiting production approval chain.
+
+  production:
+    type: active
+    category: active
+    metadata:
+      label: Production
+      color: success
+      icon: rocket
+      description: Deployed to production.
+
+  rollback:
+    type: active
+    category: active
+    metadata:
+      label: Rollback
+      color: danger
+      icon: arrow-counterclockwise
+      description: Production rollback initiated.
+
+  completed:
+    type: final
+    category: completed
+    metadata:
+      label: Completed
+      color: success
+      icon: check-circle
+      description: Release successfully deployed and verified.
+
+  failed:
+    type: final
+    category: completed
+    metadata:
+      label: Failed
+      color: danger
+      icon: x-circle
+      description: Release failed or rolled back.
+
+transitions:
+  # Development -> Staging
+  - from: development
+    to: staging
+    name: Deploy to Staging
+    metadata:
+      requires_fields:
+        - version_tag
+        - changelog
+
+  # Staging -> Pending Approval (initiates approval chain)
+  - from: staging
+    to: pending_approval
+    name: Request Production Approval
+    require_approval:
+      - assignment:
+          type: role
+          identifier: qa_lead
+        metadata:
+          message: "QA verification required before production approval chain begins."
+
+  # Pending Approval -> Production (multi-level approval chain)
+  - from: pending_approval
+    to: production
+    name: Approve for Production
+    approval_chain:
+      chain:
+        # Level 1: QA Lead (any one can approve)
+        - level: 1
+          name: QA Verification
+          assignments:
+            - type: role
+              identifier: qa_lead
+          required: any
+          timeout: 4h
+          metadata:
+            message: "Verify staging deployment passes all acceptance tests."
+
+        # Level 2: Parallel approval from Engineering and SRE
+        - level: 2
+          name: Technical Approval
+          parallel:
+            - group: engineering
+              assignments:
+                - type: role
+                  identifier: engineering_lead
+              required: any
+            - group: sre
+              assignments:
+                - type: role
+                  identifier: sre
+              required: all
+          logic: AND
+          timeout: 8h
+          metadata:
+            message: "Both Engineering and SRE teams must approve."
+
+        # Level 3: Engineering Manager (conditional for critical releases)
+        - level: 3
+          name: Manager Sign-off
+          assignments:
+            - type: role
+              identifier: engineering_manager
+          required: all
+          timeout: 24h
+          conditions:
+            any:
+              - field: priority
+                operator: "="
+                value: critical
+              - field: labels
+                operator: contains
+                value: breaking-change
+          metadata:
+            message: "Engineering manager approval required for critical or breaking releases."
+
+        # Level 4: Director (conditional for major versions)
+        - level: 4
+          name: Director Approval
+          assignments:
+            - type: role
+              identifier: director
+          required: all
+          timeout: 48h
+          conditions:
+            - field: custom_fields.release_type
+              operator: "="
+              value: major
+          metadata:
+            message: "Director approval required for major version releases."
+
+      escalation:
+        - after: 2h
+          action: reminder
+          channels: [in_app, email]
+        - after: 4h
+          action: escalate
+          to:
+            - type: role
+              identifier: engineering_manager
+          channels: [in_app, email, slack]
+        - after: 8h
+          action: notify_executive
+          to:
+            - type: role
+              identifier: director
+          channels: [in_app, email]
+        - after: 48h
+          action: auto_approve
+          reason: "Auto-approved due to timeout - no response within SLA"
+
+  # Production -> Completed
+  - from: production
+    to: completed
+    name: Verify Deployment
+    metadata:
+      requires_fields:
+        - deployment_verification
+
+  # Production -> Rollback
+  - from: production
+    to: rollback
+    name: Initiate Rollback
+    require_approval:
+      - assignment:
+          type: role
+          identifier: sre
+        metadata:
+          message: "SRE confirmation required for production rollback."
+          urgency: critical
+
+  # Rollback -> Failed
+  - from: rollback
+    to: failed
+    name: Rollback Complete
+    metadata:
+      requires_fields:
+        - rollback_reason
+        - postmortem_link
+
+  # Staging -> Development (rework)
+  - from: staging
+    to: development
+    name: Requires Changes
+
+  # Pending Approval -> Staging (rejected)
+  - from: pending_approval
+    to: staging
+    name: Approval Rejected
+    metadata:
+      rejection: true
+
+hooks:
+  - event: issue.created
+    run:
+      - action: set_field
+        field: release_stage
+        value: "development"
+      - action: set_field
+        field: created_at
+        value: "{{now}}"
+
+  - event: workflow.after_transition
+    when:
+      to: production
+    run:
+      - action: notification.send
+        channels: [slack, email]
+        template: release.production_deployed
+        recipients:
+          - role: engineering
+          - role: product
+      - action: set_field
+        field: deployed_at
+        value: "{{now}}"
+
+  - event: workflow.after_transition
+    when:
+      to: rollback
+    run:
+      - action: notification.send
+        channels: [slack, pagerduty]
+        template: release.rollback_initiated
+        level: critical
+
+automations:
+  - id: release.create_postmortem
+    on: workflow.after_transition
+    when:
+      to: failed
+    run:
+      - action: create_child_issue
+        issue_type: Postmortem
+        title: "Postmortem: {{issue.title}}"
+        assignee: "{{issue.assignee}}"
+        metadata:
+          parent_release: "{{issue.id}}"
+
+  - id: release.update_changelog
+    on: workflow.after_transition
+    when:
+      to: completed
+    run:
+      - action: extension.invoke
+        extension: com.kiket.release.changelog
+        payload:
+          version: "{{issue.custom_fields.version_tag}}"
+          changelog: "{{issue.custom_fields.changelog}}"
+          deployed_at: "{{issue.custom_fields.deployed_at}}"
+
+analytics:
+  dashboards:
+    - ref: release.deployment_health
+  metrics:
+    - id: release.approval_time
+      description: Time from approval request to production deployment.
+      expression: cycle_time("pending_approval", "production")
+    - id: release.lead_time
+      description: Time from development start to production.
+      expression: cycle_time("development", "production")
+    - id: release.rollback_rate
+      description: Percentage of releases that required rollback.
+      expression: count("rollback") / count("production") * 100

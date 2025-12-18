@@ -1,0 +1,156 @@
+model_version: "1.0"
+issue_types:
+  - key: Release
+    label: Release
+    allow_children: true
+    color: primary
+    icon: box-seam
+    position: 0
+    active: true
+    fields:
+      - key: version_tag
+        label: Version Tag
+        type: text
+        required: true
+        placeholder: "v1.2.3"
+      - key: release_type
+        label: Release Type
+        type: select
+        required: true
+        options:
+          - major
+          - minor
+          - patch
+          - hotfix
+      - key: changelog
+        label: Changelog
+        type: textarea
+        required: true
+      - key: target_date
+        label: Target Date
+        type: date
+      - key: deployed_at
+        label: Deployed At
+        type: datetime
+        readonly: true
+      - key: deployment_verification
+        label: Deployment Verification
+        type: textarea
+      - key: rollback_reason
+        label: Rollback Reason
+        type: textarea
+      - key: postmortem_link
+        label: Postmortem Link
+        type: url
+
+  - key: Hotfix
+    label: Hotfix
+    allow_children: false
+    color: danger
+    icon: bandaid
+    position: 1
+    active: true
+    fields:
+      - key: version_tag
+        label: Version Tag
+        type: text
+        required: true
+      - key: incident_id
+        label: Related Incident
+        type: text
+      - key: severity
+        label: Severity
+        type: select
+        required: true
+        options:
+          - critical
+          - high
+          - medium
+      - key: root_cause
+        label: Root Cause
+        type: textarea
+
+  - key: FeatureFlag
+    label: Feature Flag
+    allow_children: false
+    color: info
+    icon: flag
+    position: 2
+    active: true
+    fields:
+      - key: flag_name
+        label: Flag Name
+        type: text
+        required: true
+      - key: rollout_percentage
+        label: Rollout Percentage
+        type: number
+        default: 0
+      - key: target_segments
+        label: Target Segments
+        type: multiselect
+        options:
+          - internal
+          - beta
+          - enterprise
+          - all_users
+
+  - key: Postmortem
+    label: Postmortem
+    allow_children: false
+    color: warning
+    icon: file-earmark-text
+    position: 3
+    active: true
+    fields:
+      - key: incident_summary
+        label: Incident Summary
+        type: textarea
+        required: true
+      - key: timeline
+        label: Timeline
+        type: textarea
+      - key: root_cause
+        label: Root Cause
+        type: textarea
+        required: true
+      - key: action_items
+        label: Action Items
+        type: textarea
+      - key: lessons_learned
+        label: Lessons Learned
+        type: textarea
+
+  - key: ChangeRequest
+    label: Change Request
+    allow_children: true
+    color: secondary
+    icon: pencil-square
+    position: 4
+    active: true
+    fields:
+      - key: change_type
+        label: Change Type
+        type: select
+        required: true
+        options:
+          - infrastructure
+          - configuration
+          - database
+          - security
+      - key: risk_level
+        label: Risk Level
+        type: select
+        required: true
+        options:
+          - low
+          - medium
+          - high
+          - critical
+      - key: rollback_plan
+        label: Rollback Plan
+        type: textarea
+        required: true
+      - key: testing_evidence
+        label: Testing Evidence
+        type: textarea
