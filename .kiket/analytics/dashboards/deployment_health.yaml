@@ -3,137 +3,135 @@ dashboard:
   id: release.deployment_health
   name: Deployment Health
   description: Track release velocity, approval efficiency, and deployment outcomes.
+  widgets:
+    - id: release_velocity
+      type: line_chart
+      title: Release Velocity
+      description: Releases deployed to production over time.
+      query:
+        metric: count
+        filter:
+          status: production
+        group_by: week
+        time_range: 90d
 
-widgets:
-  - id: release_velocity
-    type: line_chart
-    title: Release Velocity
-    description: Releases deployed to production over time.
-    query:
-      metric: count
-      filter:
-        status: production
-      group_by: week
-      time_range: 90d
+    - id: approval_time
+      type: bar_chart
+      title: Average Approval Time
+      description: Time spent waiting for approvals by level.
+      query:
+        metric: avg
+        field: approval_duration_hours
+        group_by: approval_level
+        time_range: 30d
 
-  - id: approval_time
-    type: bar_chart
-    title: Average Approval Time
-    description: Time spent waiting for approvals by level.
-    query:
-      metric: avg
-      field: approval_duration_hours
-      group_by: approval_level
-      time_range: 30d
+    - id: rollback_rate
+      type: gauge
+      title: Rollback Rate
+      description: Percentage of releases requiring rollback.
+      query:
+        expression: |
+          (count(status = 'rollback' OR status = 'failed') /
+           count(status IN ('production', 'completed', 'rollback', 'failed'))) * 100
+        time_range: 30d
+      thresholds:
+        - value: 5
+          color: success
+        - value: 10
+          color: warning
+        - value: 100
+          color: danger
 
-  - id: rollback_rate
-    type: gauge
-    title: Rollback Rate
-    description: Percentage of releases requiring rollback.
-    query:
-      expression: |
-        (count(status = 'rollback' OR status = 'failed') /
-         count(status IN ('production', 'completed', 'rollback', 'failed'))) * 100
-      time_range: 30d
-    thresholds:
-      - value: 5
-        color: success
-      - value: 10
-        color: warning
-      - value: 100
-        color: danger
+    - id: release_lead_time
+      type: histogram
+      title: Release Lead Time Distribution
+      description: Time from development start to production deployment.
+      query:
+        metric: cycle_time
+        from_state: development
+        to_state: production
+        time_range: 90d
+        buckets: [1d, 3d, 7d, 14d, 30d]
 
-  - id: release_lead_time
-    type: histogram
-    title: Release Lead Time Distribution
-    description: Time from development start to production deployment.
-    query:
-      metric: cycle_time
-      from_state: development
-      to_state: production
-      time_range: 90d
-      buckets: [1d, 3d, 7d, 14d, 30d]
+    - id: pending_approvals
+      type: list
+      title: Pending Approvals
+      description: Releases currently awaiting approval.
+      query:
+        filter:
+          status: pending_approval
+        order_by: created_at
+        limit: 10
+      fields:
+        - version_tag
+        - assignee
+        - pending_since
+        - approval_level
 
-  - id: pending_approvals
-    type: list
-    title: Pending Approvals
-    description: Releases currently awaiting approval.
-    query:
-      filter:
-        status: pending_approval
-      order_by: created_at
-      limit: 10
-    fields:
-      - version_tag
-      - assignee
-      - pending_since
-      - approval_level
+    - id: recent_rollbacks
+      type: list
+      title: Recent Rollbacks
+      description: Releases that were rolled back in the last 30 days.
+      query:
+        filter:
+          status: [rollback, failed]
+        time_range: 30d
+        order_by: updated_at
+        limit: 5
+      fields:
+        - version_tag
+        - rollback_reason
+        - updated_at
 
-  - id: recent_rollbacks
-    type: list
-    title: Recent Rollbacks
-    description: Releases that were rolled back in the last 30 days.
-    query:
-      filter:
-        status: [rollback, failed]
-      time_range: 30d
-      order_by: updated_at
-      limit: 5
-    fields:
-      - version_tag
-      - rollback_reason
-      - updated_at
+    - id: approval_bottlenecks
+      type: bar_chart
+      title: Approval Bottlenecks by Role
+      description: Average approval wait time by approver role.
+      query:
+        metric: avg
+        field: approval_wait_time
+        group_by: approver_role
+        time_range: 30d
 
-  - id: approval_bottlenecks
-    type: bar_chart
-    title: Approval Bottlenecks by Role
-    description: Average approval wait time by approver role.
-    query:
-      metric: avg
-      field: approval_wait_time
-      group_by: approver_role
-      time_range: 30d
+    - id: release_by_type
+      type: pie_chart
+      title: Releases by Type
+      description: Distribution of release types.
+      query:
+        metric: count
+        group_by: release_type
+        time_range: 30d
+  alerts:
+    - id: high_rollback_rate
+      name: High Rollback Rate
+      description: Alert when rollback rate exceeds threshold.
+      condition:
+        metric: rollback_rate
+        operator: ">"
+        value: 10
+      severity: warning
+      channels: [slack, email]
 
-  - id: release_by_type
-    type: pie_chart
-    title: Releases by Type
-    description: Distribution of release types.
-    query:
-      metric: count
-      group_by: release_type
-      time_range: 30d
+    - id: stale_pending_approval
+      name: Stale Pending Approval
+      description: Alert when releases wait for approval beyond SLA.
+      condition:
+        filter:
+          status: pending_approval
+        field: pending_duration_hours
+        operator: ">"
+        value: 8
+      severity: warning
+      channels: [slack]
 
-alerts:
-  - id: high_rollback_rate
-    name: High Rollback Rate
-    description: Alert when rollback rate exceeds threshold.
-    condition:
-      metric: rollback_rate
-      operator: ">"
-      value: 10
-    severity: warning
-    channels: [slack, email]
-
-  - id: stale_pending_approval
-    name: Stale Pending Approval
-    description: Alert when releases wait for approval beyond SLA.
-    condition:
-      filter:
-        status: pending_approval
-      field: pending_duration_hours
-      operator: ">"
-      value: 8
-    severity: warning
-    channels: [slack]
-
-  - id: approval_sla_breach
-    name: Approval SLA Breach
-    description: Critical alert for severely delayed approvals.
-    condition:
-      filter:
-        status: pending_approval
-      field: pending_duration_hours
-      operator: ">"
-      value: 24
-    severity: critical
-    channels: [pagerduty, slack, email]
+    - id: approval_sla_breach
+      name: Approval SLA Breach
+      description: Critical alert for severely delayed approvals.
+      condition:
+        filter:
+          status: pending_approval
+        field: pending_duration_hours
+        operator: ">"
+        value: 24
+      severity: critical
+      channels: [pagerduty, slack, email]
