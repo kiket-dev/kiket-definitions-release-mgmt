@@ -35,6 +35,21 @@ states:
       color: warning
       icon: clock-history
       description: Awaiting production approval chain.
+    sla:
+      warning: 2h
+      breach: 8h
+      business_hours: true
+      on_warning:
+        - action: notify
+          recipients:
+            user: assignee
+          message: "{{issue.title}} approaching SLA in Pending Approval"
+      on_breach:
+        - action: notify
+          recipients:
+            roles: [engineering_manager]
+          message: "SLA BREACH: {{issue.title}} exceeded 8h in Pending Approval"
+          level: critical
 
   production:
     type: active
