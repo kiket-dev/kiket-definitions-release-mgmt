@@ -240,7 +240,7 @@ transitions:
       rejection: true
 
 hooks:
-  - event: issue.created
+  - event: case.created
     run:
       - action: set_field
         field: release_stage
@@ -279,7 +279,7 @@ automations:
       to: failed
     run:
       - action: create_child_issue
-        issue_type: Postmortem
+        case_type: Postmortem
         title: "Postmortem: {{issue.title}}"
         assignee: "{{issue.assignee}}"
         metadata:

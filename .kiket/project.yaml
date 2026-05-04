@@ -27,7 +27,7 @@ project:
     issues:
       - title: "Release v2.5.0 - custom dashboards and bulk operations"
         description: Major release including the custom dashboard builder, bulk card operations, and 14 bug fixes. Requires director approval due to database migration.
-        issue_type: Release
+        case_type: Release
         status: pending_approval
         priority: high
         labels:
@@ -36,7 +36,7 @@ project:
 
       - title: "Hotfix v2.4.3 - fix webhook delivery timeout"
         description: Critical hotfix for webhook deliveries timing out after 5 seconds. Increases timeout to 30 seconds and adds retry logic. Related to incident INC-847.
-        issue_type: Hotfix
+        case_type: Hotfix
         status: production
         priority: critical
         labels:
@@ -45,7 +45,7 @@ project:
 
       - title: "Release v2.6.0 - API rate limiting and SSO"
         description: Includes per-tenant API rate limiting middleware, SAML 2.0 SSO integration, and OpenTelemetry collector migration.
-        issue_type: Release
+        case_type: Release
         status: development
         priority: high
         labels:
@@ -54,7 +54,7 @@ project:
 
       - title: "Feature flag rollout - new command palette"
         description: Gradually roll out the redesigned command palette. Start with internal users, then beta, then 25% of all users over two weeks.
-        issue_type: FeatureFlag
+        case_type: FeatureFlag
         status: staging
         priority: medium
         labels:
@@ -63,7 +63,7 @@ project:
 
       - title: "Change request - PostgreSQL connection pool resize"
         description: Increase connection pool from 25 to 50 per instance to address peak-hour saturation. Requires config change across all Cloud Run services.
-        issue_type: ChangeRequest
+        case_type: ChangeRequest
         status: pending_approval
         priority: high
         labels:
@@ -72,7 +72,7 @@ project:
 
       - title: "Postmortem - v2.4.1 rollback due to migration lock"
         description: v2.4.1 was rolled back after a long-running migration locked the issues table for 12 minutes during peak hours. Document root cause and preventive measures.
-        issue_type: Postmortem
+        case_type: Postmortem
         status: completed
         priority: medium
         labels:

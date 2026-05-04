@@ -93,7 +93,7 @@ filters:
       query: "status == 'pending_approval'"
     - key: hotfixes
       name: Hotfixes Only
-      query: "issue_type == 'Hotfix'"
+      query: "case_type == 'Hotfix'"
     - key: blocked
       name: Blocked
       query: "has_pending_approvals == true"

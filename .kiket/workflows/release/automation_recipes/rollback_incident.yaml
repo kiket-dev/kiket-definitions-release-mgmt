@@ -25,7 +25,7 @@ recipe:
         - "@engineering-leads"
 
     - type: "create_child_issue"
-      issue_type: Postmortem
+      case_type: Postmortem
       title: "Postmortem: {{issue.title}} Rollback"
       priority: high
       assignee: "{{issue.assignee}}"

@@ -3,10 +3,10 @@ recipe:
   key: hotfix_fast_track
   name: "Hotfix Fast Track"
   description: "Expedite critical hotfixes through the approval process."
-  trigger: "issue.updated"
+  trigger: "case.updated"
   conditions:
     all:
-      - field: "issue_type"
+      - field: "case_type"
         operator: "="
         value: Hotfix
       - field: "custom_fields.severity"
