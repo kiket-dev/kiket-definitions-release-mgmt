@@ -25,13 +25,13 @@ recipe:
     - type: "notify"
       channel: "in_app"
       recipients:
-        - "{{issue.assignee}}"
+        - "{{case.assignee}}"
       template: "stale_release"
-      message: "Release {{issue.custom_fields.version_tag}} has been in {{issue.status}} for {{issue.days_in_state}} days."
+      message: "Release {{case.custom_fields.version_tag}} has been in {{case.status}} for {{case.days_in_state}} days."
 
     - type: "add_comment"
       body: |
-        This release has been in **{{issue.status}}** for {{issue.days_in_state}} days.
+        This release has been in **{{case.status}}** for {{case.days_in_state}} days.
 
         Please provide an update on the status or consider:
         - Moving to the next stage if ready

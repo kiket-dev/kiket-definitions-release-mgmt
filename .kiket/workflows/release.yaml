@@ -43,12 +43,12 @@ states:
         - action: notify
           recipients:
             user: assignee
-          message: "{{issue.title}} approaching SLA in Pending Approval"
+          message: "{{case.title}} approaching SLA in Pending Approval"
       on_breach:
         - action: notify
           recipients:
             roles: [engineering_manager]
-          message: "SLA BREACH: {{issue.title}} exceeded 8h in Pending Approval"
+          message: "SLA BREACH: {{case.title}} exceeded 8h in Pending Approval"
           level: critical
 
   production:
@@ -280,10 +280,10 @@ automations:
     run:
       - action: create_child_issue
         case_type: Postmortem
-        title: "Postmortem: {{issue.title}}"
-        assignee: "{{issue.assignee}}"
+        title: "Postmortem: {{case.title}}"
+        assignee: "{{case.assignee}}"
         metadata:
-          parent_release: "{{issue.id}}"
+          parent_release: "{{case.id}}"
 
   - id: release.update_changelog
     on: workflow.after_transition
@@ -293,9 +293,9 @@ automations:
       - action: extension.invoke
         extension: com.kiket.release.changelog
         payload:
-          version: "{{issue.custom_fields.version_tag}}"
-          changelog: "{{issue.custom_fields.changelog}}"
-          deployed_at: "{{issue.custom_fields.deployed_at}}"
+          version: "{{case.custom_fields.version_tag}}"
+          changelog: "{{case.custom_fields.changelog}}"
+          deployed_at: "{{case.custom_fields.deployed_at}}"
 
 analytics:
   dashboards:

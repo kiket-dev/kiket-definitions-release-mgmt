@@ -20,7 +20,7 @@ recipe:
       channel: "pagerduty"
       template: "critical_hotfix"
       level: "critical"
-      message: "CRITICAL HOTFIX: {{issue.custom_fields.version_tag}} requires immediate approval."
+      message: "CRITICAL HOTFIX: {{case.custom_fields.version_tag}} requires immediate approval."
 
     - type: "notify"
       channel: "slack:incident-response"

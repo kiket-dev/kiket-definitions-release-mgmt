@@ -14,7 +14,7 @@ recipe:
       channel: "pagerduty"
       template: "production_rollback"
       level: "critical"
-      message: "PRODUCTION ROLLBACK: {{issue.custom_fields.version_tag}} is being rolled back."
+      message: "PRODUCTION ROLLBACK: {{case.custom_fields.version_tag}} is being rolled back."
 
     - type: "notify"
       channel: "slack:incident-response"
@@ -26,16 +26,16 @@ recipe:
 
     - type: "create_child_issue"
       case_type: Postmortem
-      title: "Postmortem: {{issue.title}} Rollback"
+      title: "Postmortem: {{case.title}} Rollback"
       priority: high
-      assignee: "{{issue.assignee}}"
+      assignee: "{{case.assignee}}"
       fields:
         incident_summary: |
-          Release {{issue.custom_fields.version_tag}} required production rollback.
+          Release {{case.custom_fields.version_tag}} required production rollback.
 
           Original changelog:
-          {{issue.custom_fields.changelog}}
-        parent_release: "{{issue.id}}"
+          {{case.custom_fields.changelog}}
+        parent_release: "{{case.id}}"
 
     - type: "request_approval"
       assignment:

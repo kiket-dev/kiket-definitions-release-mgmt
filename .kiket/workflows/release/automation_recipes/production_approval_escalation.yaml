@@ -17,7 +17,7 @@ recipe:
       channel: "slack:release-approvals"
       template: "approval_escalation"
       level: "warning"
-      message: "Release {{issue.custom_fields.version_tag}} is awaiting approval for {{approval.pending_duration_hours}} hours."
+      message: "Release {{case.custom_fields.version_tag}} is awaiting approval for {{approval.pending_duration_hours}} hours."
 
     - type: "escalate_approval"
       add_approvers:
